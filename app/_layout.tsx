@@ -1,37 +1,42 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
-
-import { useColorScheme } from '@/hooks/useColorScheme';
-
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
+import { Stack } from "expo-router";
+import { useEffect, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
+    const checkLoginStatus = async () => {
+      try {
+        const token = await AsyncStorage.getItem("userToken");
 
-  if (!loaded) {
-    return null;
+        // Set isLoggedIn to true if token exists, otherwise false
+        setIsLoggedIn(!!token);
+      } catch (error) {
+        console.error("Error fetching token:", error);
+        // In case of error, set login status to false
+        setIsLoggedIn(false);
+      }
+    };
+
+    checkLoginStatus();
+  }, []);
+
+  if (isLoggedIn === null) {
+    // Show a loading indicator while checking the login status
+    return null; // Or you can return a loading spinner here
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-    </ThemeProvider>
+    <Stack>
+      {isLoggedIn ? (
+        <Stack.Screen name="index"/>
+      ) : (
+        <>
+          <Stack.Screen name="login" />
+          <Stack.Screen name="signup" />
+        </>
+      )}
+    </Stack>
   );
 }
